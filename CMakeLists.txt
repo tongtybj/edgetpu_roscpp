@@ -95,7 +95,7 @@ catkin_package(
 
 
 include_directories(
-# include
+  include
   ${catkin_INCLUDE_DIRS}
 )
 
@@ -116,12 +116,13 @@ add_library(edgetpu_engine
   ${EDGETPU_SOURCE_DIR}/classification/engine.cc
   ${EDGETPU_SOURCE_DIR}/detection/engine.cc
   ${EDGETPU_SOURCE_DIR}/posenet/posenet_decoder.cc
-  ${EDGETPU_SOURCE_DIR}/posenet/posenet_decoder_op.cc)
-target_link_libraries(edgetpu_engine tensorflow-lite :libedgetpu.so.1.0 pthread)
+  ${EDGETPU_SOURCE_DIR}/posenet/posenet_decoder_op.cc
+  src/utils/image_resize.cpp)
+target_link_libraries(edgetpu_engine tensorflow-lite :libedgetpu.so.1.0 pthread ${catkin_LIBRARIES})
 add_dependencies(edgetpu_engine ABSEIL)
 
 add_executable(classify_image
-  src/classify_image.cc
+  src/classify_image.cpp
   ${EDGETPU_SOURCE_DIR}/examples/label_utils.cc
   )
 target_link_libraries(classify_image edgetpu_engine glog ${ABSEIL_LIBRARIES} ${catkin_LIBRARIES})

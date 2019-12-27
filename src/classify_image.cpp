@@ -5,6 +5,7 @@
 #include "src/cpp/examples/label_utils.h"
 #include "src/cpp/examples/model_utils.h"
 #include <opencv2/opencv.hpp>
+#include "edgetpu_roscpp/image_resize.h"
 #include <chrono>
 
 typedef std::chrono::high_resolution_clock Time;
@@ -25,16 +26,22 @@ void ClassifyImage(const std::string& model_path, const std::string& image_path,
                    const std::string& labels_path) {
   // Load the model.
   coral::ClassificationEngine engine(model_path);
-  std::vector<int> input_tensor_shape = engine.get_input_tensor_shape();
+  std::vector<int> input_tensor_shape = engine.get_input_tensor_shape(); // [1, height, width, 3]
+  if(input_tensor_shape.size() != 4 || input_tensor_shape.at(0) != 1 || input_tensor_shape.at(3) != 3)
+    throw std::runtime_error("the input tensor shape for classification is not correct");
+
   // Read the image.
   auto t0 = Time::now();
-  cv::Mat inputImage = cv::imread(image_path);
-  cv::cvtColor(inputImage, inputImage, CV_BGR2RGB);
+  cv::Mat input_img = cv::imread(image_path);
+  cv::cvtColor(input_img, input_img, CV_BGR2RGB);
   std::cout << "image is:" << image_path << std::endl;
-  std::cout << "cv mat type: " << inputImage.type() << std::endl;
+  std::cout << "cv mat type: " << input_img.type() << std::endl;
 
-  cv::resize(inputImage, inputImage, cv::Size(224, 224));
-  std::vector<uint8_t> input_tensor(inputImage.data, inputImage.data + (inputImage.cols * inputImage.rows * inputImage.elemSize()));
+  cv::Mat output_img;
+  CvSize2D32f ratio;
+  resize(input_img, cv::Size(input_tensor_shape.at(2), input_tensor_shape.at(1)), false, output_img, ratio);
+  std::vector<uint8_t> input_tensor(output_img.data, output_img.data + (output_img.cols * output_img.rows * output_img.elemSize()));
+  cv::imwrite("/tmp/resize_img.png", output_img);
   auto t1 = Time::now();
   fsec fs = t1 - t0;
   ms d = std::chrono::duration_cast<ms>(fs);
