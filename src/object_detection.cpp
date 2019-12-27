@@ -1,4 +1,4 @@
-// An example to classify image.
+// An example to object detection.
 #include "absl/flags/flag.h"
 #include "absl/flags/parse.h"
 #include "src/cpp/detection/engine.h"
@@ -46,10 +46,10 @@ void ObjectDetection(const std::string& model_path, const std::string& image_pat
   cv::Mat input_img;
   cv::cvtColor(raw_img, input_img, CV_BGR2RGB);
   auto t0 = Time::now();
-  std::cout << "image: [" << input_img.size().width << ", "<< input_img.size().height << "]" << std::endl;
+  //std::cout << "image: [" << input_img.size().width << ", "<< input_img.size().height << "]" << std::endl;
   auto t1 = Time::now();
   fsec fs = t1 - t0;
-  std::cout << "color convert: " << fs.count() << "s\n";
+  //std::cout << "color convert: " << fs.count() << "s\n";
 
   cv::Mat output_img;
   CvSize2D32f ratio;
@@ -59,8 +59,9 @@ void ObjectDetection(const std::string& model_path, const std::string& image_pat
   std::vector<uint8_t> input_tensor(output_img.data, output_img.data + (output_img.cols * output_img.rows * output_img.elemSize()));
   t1 = Time::now();
   fs = t1 - t0;
-  std::cout << "resize: " << fs.count() << "s\n";
-  std::cout << "ration: [" << ratio.width << ", " <<  ratio.height << "]" << std::endl;
+  //std::cout << "resize: " << fs.count() << "s\n";
+  //std::cout << "ratio: [" << ratio.width << ", " <<  ratio.height << "]" << std::endl;
+
   // Read the label file.
   auto labels = coral::ReadLabelFile(labels_path);
 
@@ -92,6 +93,7 @@ void ObjectDetection(const std::string& model_path, const std::string& image_pat
   }
 
   cv::imwrite("/tmp/object_detection.png", raw_img);
+  std::cout << "Please check /tmp/object_detection.png" << std::endl;
 }
 
 int main(int argc, char* argv[]) {

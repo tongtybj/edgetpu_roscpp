@@ -1,0 +1,8 @@
+<launch>
+  <arg name= "model_path"  default = "$(find edgetpu_roscpp)/test/data/edgetpu/ssd_mobilenet_v1_fine_tuned_edgetpu.tflite" />
+  <arg name= "image_path"  default = "$(find edgetpu_roscpp)/test/data/edgetpu/pets.jpg" />
+  <arg name= "labels_path" default = "$(find edgetpu_roscpp)/test/data/edgetpu/pet_labels.txt" />
+  <arg name= "keep_aspect_ratio" default = "false" />
+
+  <node pkg="edgetpu_roscpp" type="object_detection" name="object_detection" args="--model_path=$(arg model_path) --image_path=$(arg image_path) --labels_path=$(arg labels_path) --keep_aspect_ratio=$(arg keep_aspect_ratio)" output="screen"/>
+</launch>

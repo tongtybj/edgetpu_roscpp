@@ -3,16 +3,17 @@ project(edgetpu_roscpp)
 
 add_compile_options(-std=c++11)
 
-include(ExternalProject)
-
 find_package(catkin REQUIRED COMPONENTS
+  abseil_cpp
   roscpp
   rospy
   cv_bridge
+  image_transport
+  jsk_perception
+  jsk_topic_tools
+  nodelet
+  sensor_msgs
   )
-
-#find_package(PkgConfig)
-#pkg_check_modules(GLOG QUIET libglog)
 
 # Tensorflow Lite
 set(TENSORFLOW_COMMIT 5d0b55dd4a00c74809e5b32217070a26ac6ef823)
@@ -36,40 +37,6 @@ endif()
 include_directories(${TENSORFLOW_DIR})
 include_directories(${TENSORFLOW_DIR}/tensorflow/lite/tools/make/downloads/flatbuffers/include)
 link_directories(${TENSORFLOW_DIR}/tensorflow/lite/tools/make/gen/linux_x86_64/lib)
-
-
-# Abseil
-set(ABSEIL_INSTALL_DIR ${PROJECT_SOURCE_DIR}/absl)
-ExternalProject_Add(ABSEIL
-  GIT_REPOSITORY https://github.com/abseil/abseil-cpp.git
-  GIT_TAG 43ef2148c0936ebf7cb4be6b19927a9d9d145b8f
-  CMAKE_ARGS -DCMAKE_INSTALL_PREFIX=${ABSEIL_INSTALL_DIR}
-  CMAKE_ARGS -DCMAKE_BUILD_TYPE=Release
-  BUILD_COMMAND make
-  BUILD_IN_SOURCE 1
-  INSTALL_COMMAND make install
-  LOG_DOWNLOAD ON
-  LOG_CONFIGURE ON
-  LOG_BUILD ON
-  )
-include_directories(${ABSEIL_INSTALL_DIR}/include)
-#include(${ABSEIL_INSTALL_DIR}/lib/cmake/absl/abslConfig.cmake) # we can not load .cmake when this target does not exist.
-link_directories(${ABSEIL_INSTALL_DIR}/lib)
-set(ABSEIL_LIBRARIES
-  absl_synchronization
-  absl_malloc_internal
-  absl_graphcycles_internal
-  absl_stacktrace
-  absl_symbolize
-  absl_debugging_internal
-  absl_dynamic_annotations
-  absl_demangle_internal
-  absl_spinlock_wait
-  absl_time
-  absl_civil_time
-  absl_time_zone
-  absl_base
-  )
 
 
 # EdgeTPU Native C++ library
@@ -101,6 +68,17 @@ include_directories(
 
 set(EDGETPU_SOURCE_DIR ${EDGETPU_DIR}/src/cpp)
 
+# download and install sample data
+add_custom_target(install_test_data ALL
+  COMMAND ${PROJECT_SOURCE_DIR}/scripts/install_test_data.py)
+add_custom_target(link_test_data ALL
+  COMMAND ln -nfs ${EDGETPU_DIR}/test_data ${PROJECT_SOURCE_DIR}/test/data/edgetpu
+  )
+add_custom_target(link_scripts ALL
+  COMMAND ln -nfs ${EDGETPU_DIR}/scripts ${PROJECT_SOURCE_DIR}/scripts/edgetpu
+  )
+
+
 # test of src/cpp/examples/minimal
 add_executable(edgetpu_minimal
   ${EDGETPU_SOURCE_DIR}/examples/minimal.cc
@@ -117,20 +95,23 @@ add_library(edgetpu_engine
   ${EDGETPU_SOURCE_DIR}/detection/engine.cc
   ${EDGETPU_SOURCE_DIR}/posenet/posenet_decoder.cc
   ${EDGETPU_SOURCE_DIR}/posenet/posenet_decoder_op.cc
+  ${EDGETPU_SOURCE_DIR}/examples/label_utils.cc
   src/utils/image_resize.cpp)
 target_link_libraries(edgetpu_engine tensorflow-lite :libedgetpu.so.1.0 pthread ${catkin_LIBRARIES})
-add_dependencies(edgetpu_engine ABSEIL)
 
-add_executable(classify_image
-  src/classify_image.cpp
-  ${EDGETPU_SOURCE_DIR}/examples/label_utils.cc
-  )
-target_link_libraries(classify_image edgetpu_engine glog ${ABSEIL_LIBRARIES} ${catkin_LIBRARIES})
-add_dependencies(classify_image ABSEIL)
+add_executable(classify_image src/classify_image.cpp)
+target_link_libraries(classify_image edgetpu_engine glog ${catkin_LIBRARIES})
 
-add_executable(object_detection
-  src/object_detection.cpp
-  ${EDGETPU_SOURCE_DIR}/examples/label_utils.cc
-  )
-target_link_libraries(object_detection edgetpu_engine glog ${ABSEIL_LIBRARIES} ${catkin_LIBRARIES})
-add_dependencies(object_detection ABSEIL)
+add_executable(object_detection src/object_detection.cpp)
+target_link_libraries(object_detection edgetpu_engine glog  ${catkin_LIBRARIES})
+
+macro(arp_add_nodelet _nodelet_cpp _nodelet_class _single_nodelet_exec_name)
+  jsk_nodelet(${_nodelet_cpp} ${_nodelet_class} ${_single_nodelet_exec_name}
+    ${PROJECT_NAME}_nodelet_sources ${PROJECT_NAME}_nodelet_executables)
+endmacro()
+
+arp_add_nodelet(src/deep_object_detection.cpp "edgetpu_rospp/deepObjectDetecion" "deep_object_detection")
+
+add_library(${PROJECT_NAME} SHARED ${edgetpu_roscpp_nodelet_sources})
+target_link_libraries(${PROJECT_NAME} ${catkin_LIBRARIES} ${Boost_LIBRARIES} edgetpu_engine)
+

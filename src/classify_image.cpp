@@ -32,20 +32,19 @@ void ClassifyImage(const std::string& model_path, const std::string& image_path,
 
   // Read the image.
   auto t0 = Time::now();
+  std::cout << "image is:" << image_path << std::endl;
   cv::Mat input_img = cv::imread(image_path);
   cv::cvtColor(input_img, input_img, CV_BGR2RGB);
-  std::cout << "image is:" << image_path << std::endl;
-  std::cout << "cv mat type: " << input_img.type() << std::endl;
 
   cv::Mat output_img;
   CvSize2D32f ratio;
   resize(input_img, cv::Size(input_tensor_shape.at(2), input_tensor_shape.at(1)), false, output_img, ratio);
   std::vector<uint8_t> input_tensor(output_img.data, output_img.data + (output_img.cols * output_img.rows * output_img.elemSize()));
-  cv::imwrite("/tmp/resize_img.png", output_img);
   auto t1 = Time::now();
   fsec fs = t1 - t0;
   ms d = std::chrono::duration_cast<ms>(fs);
-  std::cout << fs.count() << "s\n";
+  //std::cout << fs.count() << "s\n";
+
   // Read the label file.
   auto labels = coral::ReadLabelFile(labels_path);
 

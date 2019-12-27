@@ -1,0 +1,7 @@
+<launch>
+  <arg name= "model_path"  default = "$(find edgetpu_roscpp)/test/data/edgetpu/mobilenet_v1_1.0_224_quant_edgetpu.tflite" />
+  <arg name= "image_path"  default = "$(find edgetpu_roscpp)/test/data/edgetpu/cat.bmp" />
+  <arg name= "labels_path" default = "$(find edgetpu_roscpp)/test/data/edgetpu/imagenet_labels.txt" />
+
+  <node pkg="edgetpu_roscpp" type="classify_image" name="classify_image" args="--model_path=$(arg model_path) --image_path=$(arg image_path) --labels_path=$(arg labels_path)" output="screen"/>
+</launch>

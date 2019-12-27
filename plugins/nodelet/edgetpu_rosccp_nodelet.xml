@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<library path="lib/libedgetpu_roscpp">
+  <class name="edgetpu_roscpp/DeepObjectDetection"
+         type="edgetpu_roscpp::DeepObjectDetection"
+         base_class_type="nodelet::Nodelet">
+  </class>
+
+</library>
