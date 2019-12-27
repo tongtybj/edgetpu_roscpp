@@ -74,10 +74,10 @@ set(ABSEIL_LIBRARIES
 
 # EdgeTPU Native C++ library
 set(EDGETPU_DIR ${CMAKE_CURRENT_BINARY_DIR}/edgetpu)
-set(EDGETPU_COMMIT 14237f65ba07b7b1d8287e9f60dd20c88562871a)
+set(EDGETPU_COMMIT 25cad8d9c91753d9edd9f23b86f487749d5a84cc)
 if (NOT EXISTS ${EDGETPU_DIR})
   execute_process(
-    COMMAND git clone https://github.com/google-coral/edgetpu.git ${EDGETPU_DIR})
+    COMMAND git clone https://github.com/tongtybj/edgetpu.git ${EDGETPU_DIR})
   execute_process(
     COMMAND git checkout ${EDGETPU_COMMIT}
     WORKING_DIRECTORY ${EDGETPU_DIR}
@@ -127,3 +127,10 @@ add_executable(classify_image
   )
 target_link_libraries(classify_image edgetpu_engine glog ${ABSEIL_LIBRARIES} ${catkin_LIBRARIES})
 add_dependencies(classify_image ABSEIL)
+
+add_executable(object_detection
+  src/object_detection.cpp
+  ${EDGETPU_SOURCE_DIR}/examples/label_utils.cc
+  )
+target_link_libraries(object_detection edgetpu_engine glog ${ABSEIL_LIBRARIES} ${catkin_LIBRARIES})
+add_dependencies(object_detection ABSEIL)

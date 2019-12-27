@@ -50,17 +50,17 @@ void resize(const cv::Mat& input_img, const cv::Size required_size, bool keep_as
                 << "[" << new_size.width << ", " << new_size.height << "]" << std::endl;
 
       cv::Mat resized_img;
-      cv::resize(input_img, resized_img, new_size, cv::INTER_NEAREST);
+      cv::resize(input_img, resized_img, new_size);
 
       int delta_w = required_size.width - new_size.width;
       int delta_h = required_size.height - new_size.height;
       cv::copyMakeBorder(resized_img, output_img, 0, delta_h, 0, delta_w, cv::BORDER_CONSTANT); // https://docs.opencv.org/3.4/dc/da3/tutorial_copyMakeBorder.html
 
-      ratio = CvSize2D32f(new_size.width / required_size.width, new_size.height / required_size.height);
+      ratio = CvSize2D32f((double)new_size.width / required_size.width, (double)new_size.height / required_size.height);
     }
   else
     {
-      cv::resize(input_img, output_img, required_size, cv::INTER_NEAREST);
+      cv::resize(input_img, output_img, required_size);
       ratio = CvSize2D32f(1, 1);
     }
 }
