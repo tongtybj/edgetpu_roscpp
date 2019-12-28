@@ -52,6 +52,7 @@ if (NOT EXISTS ${EDGETPU_DIR})
 endif()
 include_directories(${EDGETPU_DIR})
 include_directories(${EDGETPU_DIR}/libedgetpu)
+link_directories(${EDGETPU_DIR}/libedgetpu/direct/k8) # right now only support x86 arch
 
 catkin_package(
 #  INCLUDE_DIRS include
@@ -59,7 +60,6 @@ catkin_package(
 #  CATKIN_DEPENDS roscpp rospy
 #  DEPENDS system_lib
 )
-
 
 include_directories(
   include
@@ -73,6 +73,7 @@ add_custom_target(install_test_data ALL
   COMMAND ${PROJECT_SOURCE_DIR}/scripts/install_test_data.py)
 add_custom_target(link_test_data ALL
   COMMAND ln -nfs ${EDGETPU_DIR}/test_data ${PROJECT_SOURCE_DIR}/test/data/edgetpu
+  DEPENDS install_test_data
   )
 add_custom_target(link_scripts ALL
   COMMAND ln -nfs ${EDGETPU_DIR}/scripts ${PROJECT_SOURCE_DIR}/scripts/edgetpu
@@ -113,5 +114,5 @@ endmacro()
 arp_add_nodelet(src/deep_object_detection.cpp "edgetpu_rospp/deepObjectDetecion" "deep_object_detection")
 
 add_library(${PROJECT_NAME} SHARED ${edgetpu_roscpp_nodelet_sources})
-target_link_libraries(${PROJECT_NAME} ${catkin_LIBRARIES} ${Boost_LIBRARIES} edgetpu_engine)
+target_link_libraries(${PROJECT_NAME} ${catkin_LIBRARIES} ${Boost_LIBRARIES} edgetpu_engine glog)
 
