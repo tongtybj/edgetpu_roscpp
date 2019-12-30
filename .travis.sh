@@ -20,6 +20,8 @@ mkdir -p ~/catkin_ws/src
 cd ~/catkin_ws
 ln -sf ${CI_SOURCE_PATH} src/${REPOSITORY_NAME}
 wstool init src
+wstool merge -t src src/edgetpu_roscpp/edgetpu_roscpp_${ROS_DISTRO}.rosinstall
+wstool update -t src
 rosdep install --from-paths src -y -q -r --ignore-src --rosdistro ${ROS_DISTRO} # -r is indisapensible
 
 # Build

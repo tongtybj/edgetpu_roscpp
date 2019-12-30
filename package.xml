@@ -13,6 +13,7 @@
   <depend>cv_bridge</depend>
   <depend>image_transport</depend>
   <depend>jsk_perception</depend>
+  <depend>jsk_recognition_msgs</depend>
   <depend>jsk_topic_tools</depend>
   <depend>libgflags-dev</depend>
   <depend>libgoogle-glog-dev</depend>
@@ -23,6 +24,7 @@
 
   <exec_depend>jsk_data</exec_depend>
   <exec_depend>python-gdown-pip</exec_depend>
+  <exec_depend>video_stream_opencv</exec_depend>
 
   <export>
     <nodelet plugin="${prefix}/plugins/nodelet/edgetpu_rosccp_nodelet.xml"/>

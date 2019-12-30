@@ -1,0 +1,44 @@
+<launch>
+  <arg name= "need_nodelet_manager" default= "true"/>
+  <arg name= "image_view" default="false"/>
+  <arg name= "verbose" default="false"/>
+
+  <arg name= "image_topic" default = "/camera/image_raw" />
+  <arg name= "model_file"  default = "$(find edgetpu_roscpp)/test/data/drone_detection_edgetpu.tflite" />
+  <arg name= "coarse_detection_score_threshold" default = "0.3" />
+  <arg name= "refined_detection_score_threshold" default = "0.8" />
+  <arg name= "tracking_score_threshold" default = "0.7" />
+  <arg name= "expanding_bounding_box_rate" default = "2.0" />
+
+  <arg name= "detection_check_frame_num" default = "10" />
+  <arg name= "lost_target_check_frame_num" default = "5" />
+  <arg name= "redetection_after_lost_target_frame_num" default = "30" /> <!-- this is associated with the frame rate (fps) -->
+
+  <arg name= "quick_detection" default = "false" />
+  <arg name= "keep_aspect_ratio_in_inference" default = "false" />
+  <arg name= "keep_aspect_ratio_in_expanded_bbox" default = "true" />
+  <arg name= "target_quality_check_duration" default = "5.0" /> <!-- not implmented -->
+
+  <node pkg="nodelet" type="nodelet" name="detection_nodelet" args="manager" output="screen" if="$(arg need_nodelet_manager)"/>
+
+  <node pkg="nodelet" type="nodelet" name="single_object_detection_and_tracking"
+        args="load edgetpu_roscpp/SingleObjectDeepTrackingDetection detection_nodelet" output="screen">
+    <remap from="image" to="$(arg image_topic)" />
+    <param name="model_file" value="$(arg model_file)"/>
+    <param name="coarse_detection_score_threshold" value="$(arg coarse_detection_score_threshold)"/>
+    <param name="refined_detection_score_threshold" value="$(arg refined_detection_score_threshold)"/>
+    <param name="tracking_score_threshold" value="$(arg tracking_score_threshold)"/>
+    <param name="expanding_bounding_box_rate" value="$(arg expanding_bounding_box_rate)"/>
+    <param name="target_quality_check_duration" value="$(arg target_quality_check_duration)"/>
+    <param name="detection_check_frame_num" value="$(arg detection_check_frame_num)"/>
+    <param name="lost_target_check_frame_num" value="$(arg lost_target_check_frame_num)"/>
+    <param name="redetection_after_lost_target_frame_num" value="$(arg redetection_after_lost_target_frame_num)"/>
+
+    <param name="quick_detection" value="$(arg quick_detection)"/>
+    <param name="keep_aspect_ratio_in_inference" value="$(arg keep_aspect_ratio_in_inference)"/>
+    <param name="keep_aspect_ratio_in_expanded_bbox" value="$(arg keep_aspect_ratio_in_expanded_bbox)"/>
+    <param name="image_view" value="$(arg image_view)"/>
+    <param name="verbose" value="$(arg verbose)"/>
+  </node>
+
+</launch>

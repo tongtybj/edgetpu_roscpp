@@ -1,0 +1,5 @@
+# video stream opencv
+- git:
+    local-name: video_stream_opencv
+    uri: https://github.com/tongtybj/video_stream_opencv.git
+    version: play_videofile

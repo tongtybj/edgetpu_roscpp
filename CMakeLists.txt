@@ -10,6 +10,7 @@ find_package(catkin REQUIRED COMPONENTS
   cv_bridge
   image_transport
   jsk_perception
+  jsk_recognition_msgs
   jsk_topic_tools
   nodelet
   sensor_msgs
@@ -111,7 +112,8 @@ macro(arp_add_nodelet _nodelet_cpp _nodelet_class _single_nodelet_exec_name)
     ${PROJECT_NAME}_nodelet_sources ${PROJECT_NAME}_nodelet_executables)
 endmacro()
 
-arp_add_nodelet(src/deep_object_detection.cpp "edgetpu_rospp/deepObjectDetecion" "deep_object_detection")
+arp_add_nodelet(src/deep_object_detection.cpp "edgetpu_rospp/DeepObjectDetecion" "deep_object_detection")
+arp_add_nodelet(src/single_object_tracking_by_deep_detection.cpp "edgetpu_rospp/SingleObjectDeepTrackingDetection" "single_object_tracking_by_deep_detection")
 
 add_library(${PROJECT_NAME} SHARED ${edgetpu_roscpp_nodelet_sources})
 target_link_libraries(${PROJECT_NAME} ${catkin_LIBRARIES} ${Boost_LIBRARIES} edgetpu_engine glog)
