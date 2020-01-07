@@ -113,12 +113,13 @@ namespace edgetpu_roscpp
     double refined_detection_score_threshold_;
     double tracking_score_threshold_;
     double expanding_bounding_box_rate_;
+    double expanding_bounding_box_aspect_ratio_;
+    double larger_expanding_bounding_box_rate_;
     double target_quality_check_duration_;
     int detection_check_frame_num_;
     int lost_target_check_frame_num_;
     int redetection_after_lost_target_frame_num_;
     bool quick_detection_;
-    bool keep_aspect_ratio_in_expanded_bbox_;
     bool keep_aspect_ratio_in_inference_;
     bool image_view_;
     bool verbose_;

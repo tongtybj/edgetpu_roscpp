@@ -49,6 +49,8 @@ namespace edgetpu_roscpp
     pnh_->param("refined_detection_score_threshold", refined_detection_score_threshold_, 0.8);
     pnh_->param("tracking_score_threshold", tracking_score_threshold_, 0.6);
     pnh_->param("expanding_bounding_box_rate", expanding_bounding_box_rate_, 2.0);
+    pnh_->param("expanding_bounding_box_aspect_ratio", expanding_bounding_box_aspect_ratio_, -1.0);
+    pnh_->param("larger_expanding_bounding_box_rate", larger_expanding_bounding_box_rate_, 2.0);
     pnh_->param("target_quality_check_duration", target_quality_check_duration_, 5.0); // second
     pnh_->param("detection_check_frame_num", detection_check_frame_num_, 10);
     pnh_->param("lost_target_check_frame_num", lost_target_check_frame_num_, 5);
@@ -56,7 +58,6 @@ namespace edgetpu_roscpp
 
     pnh_->param("quick_detection", quick_detection_, false);
     pnh_->param("keep_aspect_ratio_in_inference", keep_aspect_ratio_in_inference_, false);
-    pnh_->param("keep_aspect_ratio_in_expanded_bbox", keep_aspect_ratio_in_expanded_bbox_, true);
     pnh_->param("verbose", verbose_, false);
     pnh_->param("image_view", image_view_, false);
 
@@ -123,13 +124,10 @@ namespace edgetpu_roscpp
     int expanded_width = bounding_box_width * expanding_bounding_box_rate;
     int expanded_height = bounding_box_height * expanding_bounding_box_rate;
 
-    if (keep_aspect_ratio_in_expanded_bbox_)
+    if(expanding_bounding_box_aspect_ratio_ > 0)
       {
-        double src_img_ratio = (double)src_img.size().width / src_img.size().height;
-
-        //src_img_ratio = 1; // the aspect ratio of ssd model
-        if(expanded_width < expanded_height * src_img_ratio) expanded_width = expanded_height * src_img_ratio;
-        else expanded_height = expanded_width / src_img_ratio;
+        if(expanded_width < expanded_height * expanding_bounding_box_aspect_ratio_) expanded_width = expanded_height * expanding_bounding_box_aspect_ratio_;
+        else expanded_height = expanded_width / expanding_bounding_box_aspect_ratio_;
       }
 
     //std::cout << "bounding_box :[" << bounding_box_width << ", " << bounding_box_height << "]" << std::endl;
@@ -359,9 +357,11 @@ namespace edgetpu_roscpp
     /* do tracking */
     if(detected_)
       {
+        bool larger_expanding_bbox = false;
         cv::Scalar status_color = TRACKING_TARGET;
 
         expandedBoundingImage(src_img, prev_best_detection_candidate_.corners, expanding_bounding_box_rate_, expanded_bounding_img, expanded_bounding_box);
+
         auto detection_candidates = deepDetection(expanded_bounding_img, tracking_score_threshold_);
 
         if(detection_candidates.size() > 0)
@@ -384,7 +384,7 @@ namespace edgetpu_roscpp
         else
           {
             /* re-detection by using broader expanded_bouding_box */
-            expandedBoundingImage(src_img, prev_best_detection_candidate_.corners, expanding_bounding_box_rate_ * 2.0, expanded_bounding_img, expanded_bounding_box);
+            expandedBoundingImage(src_img, prev_best_detection_candidate_.corners, larger_expanding_bounding_box_rate_, expanded_bounding_img, expanded_bounding_box);
             auto detection_candidates = deepDetection(expanded_bounding_img, tracking_score_threshold_);
 
             if(detection_candidates.size() > 0)
@@ -413,7 +413,7 @@ namespace edgetpu_roscpp
                 if(verbose_) ROS_INFO("Losing target after redetection.");
 
                 status_color = LOSING_TARGET;
-                if(lost_target_frame_cnt_ == 0)
+                if(lost_target_frame_cnt_ <= 0)
                   {
                     ROS_WARN_STREAM("Lost target with tracking score threshould " << tracking_score_threshold_);
                     lost_target_ = true;
@@ -422,6 +422,7 @@ namespace edgetpu_roscpp
                   }
                 //target_quality_check_timestamp_ =  0;
               }
+            larger_expanding_bbox = true;
           }
 
         /* do target quality check */
@@ -435,14 +436,30 @@ namespace edgetpu_roscpp
           {
             if (detected_)
               {
+                /*
                 cv::rectangle(src_img,
-                              cv::Point(best_detection_candidate.corners.xmin, best_detection_candidate.corners.ymin),
-                              cv::Point(best_detection_candidate.corners.xmax, best_detection_candidate.corners.ymax),
-                              status_color, 10);
+                              cv::Point(prev_best_detection_candidate_.corners.xmin, prev_best_detection_candidate_.corners.ymin),
+                              cv::Point(prev_best_detection_candidate_.corners.xmax, prev_best_detection_candidate_.corners.ymax),
+                              cv::Scalar(255,0,255), 2);
+                */
+
+                cv::Scalar expanded_bounding_box_color(255,0,0);
+                if(larger_expanding_bbox) expanded_bounding_box_color = cv::Scalar(255,165,0);
+                cv::rectangle(src_img,
+                              cv::Point(expanded_bounding_box.xmin, expanded_bounding_box.ymin),
+                              cv::Point(expanded_bounding_box.xmax, expanded_bounding_box.ymax),
+                              expanded_bounding_box_color, 3);
                 cv::putText(src_img, std::to_string(best_detection_candidate.score),
                             cv::Point(best_detection_candidate.corners.xmin, best_detection_candidate.corners.ymin + 30),
                             cv::FONT_HERSHEY_SIMPLEX,
                             1, status_color, 2, 8, false);
+
+                cv::rectangle(src_img,
+                              cv::Point(best_detection_candidate.corners.xmin, best_detection_candidate.corners.ymin),
+                              cv::Point(best_detection_candidate.corners.xmax, best_detection_candidate.corners.ymax),
+                              status_color, 10);
+
+
                 image_pub_.publish(cv_bridge::CvImage(msg->header, sensor_msgs::image_encodings::RGB8, src_img).toImageMsg());
               }
             else

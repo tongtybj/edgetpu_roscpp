@@ -8,7 +8,9 @@
   <arg name= "coarse_detection_score_threshold" default = "0.3" />
   <arg name= "refined_detection_score_threshold" default = "0.8" />
   <arg name= "tracking_score_threshold" default = "0.7" />
+  <arg name= "expanding_bounding_box_aspect_ratio" default = "1.0" /> <!-- general SSD is 1:1 -->
   <arg name= "expanding_bounding_box_rate" default = "2.0" />
+  <arg name= "larger_expanding_bounding_box_rate" default = "3.0" />
 
   <arg name= "detection_check_frame_num" default = "10" />
   <arg name= "lost_target_check_frame_num" default = "5" />
@@ -16,7 +18,6 @@
 
   <arg name= "quick_detection" default = "false" />
   <arg name= "keep_aspect_ratio_in_inference" default = "false" />
-  <arg name= "keep_aspect_ratio_in_expanded_bbox" default = "true" />
   <arg name= "target_quality_check_duration" default = "5.0" /> <!-- not implmented -->
 
   <node pkg="nodelet" type="nodelet" name="detection_nodelet" args="manager" output="screen" if="$(arg need_nodelet_manager)"/>
@@ -28,7 +29,9 @@
     <param name="coarse_detection_score_threshold" value="$(arg coarse_detection_score_threshold)"/>
     <param name="refined_detection_score_threshold" value="$(arg refined_detection_score_threshold)"/>
     <param name="tracking_score_threshold" value="$(arg tracking_score_threshold)"/>
+    <param name="expanding_bounding_box_aspect_ratio" value="$(arg expanding_bounding_box_aspect_ratio)"/>
     <param name="expanding_bounding_box_rate" value="$(arg expanding_bounding_box_rate)"/>
+    <param name="larger_expanding_bounding_box_rate" value="$(arg larger_expanding_bounding_box_rate)"/>
     <param name="target_quality_check_duration" value="$(arg target_quality_check_duration)"/>
     <param name="detection_check_frame_num" value="$(arg detection_check_frame_num)"/>
     <param name="lost_target_check_frame_num" value="$(arg lost_target_check_frame_num)"/>
@@ -36,7 +39,6 @@
 
     <param name="quick_detection" value="$(arg quick_detection)"/>
     <param name="keep_aspect_ratio_in_inference" value="$(arg keep_aspect_ratio_in_inference)"/>
-    <param name="keep_aspect_ratio_in_expanded_bbox" value="$(arg keep_aspect_ratio_in_expanded_bbox)"/>
     <param name="image_view" value="$(arg image_view)"/>
     <param name="verbose" value="$(arg verbose)"/>
   </node>

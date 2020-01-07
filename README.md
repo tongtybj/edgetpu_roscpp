@@ -52,9 +52,10 @@ $ rqt_image_view /deep_object_detection/detection_result
 - `coarse_detection_score_threshold`: in detection phase, we apply coarse-to-refined detection method. This parameter is for the first step detection. 
 - `refined_detection_score_threshold`: in detection phase,  we apply coarse-to-refined detection method. This parameter is for the second step detection.
 - `tracking_score_threshold`: the detection based tracking score in tracking phase, which is after the detection phase.
-- `expanding_bounding_box_rate`: in refined detection step, we expand the bouding box resulted from the coarse detection and crop this expanded area from the raw image for the refined detection. This parameter is the expanding rate.
-- `keep_aspect_ratio_in_expanded_bbox`: besides the above `expanding_bounding_box_rate`, we also have to modifiy  the aspect ratio of the crop area for refined detection. Empirically, the same aspect ratio with raw image (e.g. 4:3 for 1080HD, 5:4 for 720HD) gives the best solution so far. This is also associated with the resize process for inference. Please follow the discussion [here](https://github.com/google-coral/edgetpu/issues/36).
 - `keep_aspect_ratio_in_inference`: This is the paramter to choose whether keep the aspect ratio of a reszied image for inference. To keep the aspect ratio, we have padding the free space. Empirically, set this parameter as `false` is good for the inference model trained from [here](https://coral.ai/docs/edgetpu/retrain-detection/) or [here](https://github.com/knorth55/73b2_kitchen_edgetpu_object_detection). Please follow the discussion [here](https://github.com/google-coral/edgetpu/issues/36).
+- `expanding_bounding_box_rate`: in refined detection step, we expand the bouding box resulted from the coarse detection and crop this expanded area from the raw image for the refined detection. This parameter is the expanding rate.
+- `expanding_bounding_box_aspect_ratio`: the aspect ratio of the expaned bouding box (image). If the value is not positive (e.g., `:=0`), the aspect ratio of the raw image will be used. This is a hiper-parameter, since we can not find a general rate. For most of the cases, the aspect ratio of the raw image is effetive. However, for some corner case, such as a narrow object, the square (`1:1`) is better.
+- `larger_expanding_bounding_box_rate`: In tracking mode, if we can not find the target in `expanding_bouding_box_rate`, we will re-detect in this rate which has larger area to find the object.
 . Empirically, the same aspect ratio with raw image (e.g. 4:3 for 1080HD, 5:4 for 720HD) gives the best solution so far. This is also associated with the resize process for inference. Please follow the discussion [here](https://github.com/google-coral/edgetpu/issues/36).
 - `detection_check_frame_num`: the frame count to decide a detected candidate is a fixed target. We check whether the motion of the candidate is continous.
 - `lost_target_check_frame_num`: the frame count to decide the lost target. During the losing target phase, we will keep the last good tracking result.
@@ -63,7 +64,7 @@ $ rqt_image_view /deep_object_detection/detection_result
 
 #### from video stream:
 ```
-$ roslaunch edgetpu_roscpp single_object_tracking_by_detection.launch  image_view:=true verbose:=false coarse_detection_score_threshold:=0.0 refined_detection_score_threshold:=0.7  tracking_score_threshold:=0.7  keep_aspect_ratio_in_expanded_bbox:=true keep_aspect_ratio_in_inference:=false quick_detection:=true
+$ roslaunch edgetpu_roscpp single_object_tracking_by_detection.launch  image_view:=true verbose:=false coarse_detection_score_threshold:=0.0 refined_detection_score_threshold:=0.7  tracking_score_threshold:=0.7 expanding_bounding_box_aspect_ratio:=1  keep_aspect_ratio_in_inference:=false quick_detection:=true 
 $ roslaunch video_stream_opencv camera.launch video_stream_provider:=`rospack find edgetpu_roscpp`/test/data/DJI_0004.MP4
 $ rqt_image_view /single_object_detection_and_tracking/detection_result_image
 ```
@@ -77,3 +78,10 @@ $ roslaunch video_stream_opencv camera.launch video_stream_provider:=`rospack fi
 ```
 $ roslaunch video_stream_opencv camera.launch video_stream_provider:=/home/leus/drone_detection_dataset/video/DJI_0006.MP4 loop_videofile:=true start_frame:=6620 stop_frame:=6621 fps:=1
 ```
+
+- exampl 3: tracking object from rosbag.
+```
+$ roslaunch edgetpu_roscpp single_object_tracking_by_detection.launch  image_view:=true verbose:=false coarse_detection_score_threshold:=0.0 refined_detection_score_threshold:=0.71  tracking_score_threshold:=0.7  keep_aspect_ratio_in_expanded_bbox:=true keep_aspect_ratio_in_inference:=false quick_detection:=true model_file:=/home/chou/object_learn/train_data/train_retrain_from_326_GPU_GTX1080Ti_5000_batch64_add_valdata_rescore_603/models/output_tflite_graph_edgetpu.tflite image_topic:=/rs_d435/color/image_rect_color expanding_bounding_box_rate:=2.0 expanding_bounding_box_aspect_ratio:=1.0
+$ rosbag play 2020-01-03-kashiwa-hydrus-rsd435-task1-detection-rawdata1-3.bag --pause
+```
+
