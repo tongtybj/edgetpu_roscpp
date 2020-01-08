@@ -37,3 +37,7 @@
 # Symbolic Link
 scripts/edgetpu
 test
+
+# librareis
+tensorflow
+edgetpu

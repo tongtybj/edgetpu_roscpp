@@ -18,7 +18,7 @@ find_package(catkin REQUIRED COMPONENTS
 
 # Tensorflow Lite
 set(TENSORFLOW_COMMIT 5d0b55dd4a00c74809e5b32217070a26ac6ef823)
-set(TENSORFLOW_DIR ${CMAKE_CURRENT_BINARY_DIR}/tensorflow)
+set(TENSORFLOW_DIR ${CMAKE_CURRENT_SOURCE_DIR}/tensorflow)
 if (NOT EXISTS ${TENSORFLOW_DIR})
   execute_process(
     COMMAND git clone https://github.com/tensorflow/tensorflow.git ${TENSORFLOW_DIR})
@@ -41,7 +41,7 @@ link_directories(${TENSORFLOW_DIR}/tensorflow/lite/tools/make/gen/linux_x86_64/l
 
 
 # EdgeTPU Native C++ library
-set(EDGETPU_DIR ${CMAKE_CURRENT_BINARY_DIR}/edgetpu)
+set(EDGETPU_DIR ${CMAKE_CURRENT_SOURCE_DIR}/edgetpu)
 set(EDGETPU_COMMIT 25cad8d9c91753d9edd9f23b86f487749d5a84cc)
 if (NOT EXISTS ${EDGETPU_DIR})
   execute_process(
@@ -56,9 +56,9 @@ include_directories(${EDGETPU_DIR}/libedgetpu)
 link_directories(${EDGETPU_DIR}/libedgetpu/direct/k8) # right now only support x86 arch
 
 catkin_package(
-#  INCLUDE_DIRS include
-#  LIBRARIES edgetpu_ros
-#  CATKIN_DEPENDS roscpp rospy
+  INCLUDE_DIRS include ${TENSORFLOW_DIR} ${TENSORFLOW_DIR}/tensorflow/lite/tools/make/downloads/flatbuffers/include ${EDGETPU_DIR} ${EDGETPU_DIR}/libedgetpu
+  LIBRARIES ${PROJECT_NAME} edgetpu_engine
+  CATKIN_DEPENDS abseil_cpp roscpp rospy cv_bridge image_transport jsk_perception jsk_recognition_msgs jsk_topic_tools nodelet sensor_msgs
 #  DEPENDS system_lib
 )
 
