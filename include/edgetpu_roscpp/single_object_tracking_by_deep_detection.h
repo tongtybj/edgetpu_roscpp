@@ -66,8 +66,11 @@ namespace edgetpu_roscpp
     SingleObjectDeepTrackingDetection():
       DiagnosticNodelet("DeepObjectDetection"),
       model_tensor_shape_(0),
-      detected_(false), lost_target_(false),
-      detected_frame_cnt_(0), detecting_frame_cnt_(0),
+      detected_(false),
+      detected_in_this_frame_(false),
+      lost_target_(false),
+      detected_frame_cnt_(0),
+      detecting_frame_cnt_(0),
       lost_target_frame_cnt_(0),
       target_quality_check_timestamp_(0)
     {}
@@ -99,7 +102,8 @@ namespace edgetpu_roscpp
     /* detection and tracking */
     boost::shared_ptr<coral::DetectionEngine> detection_engine_;
     std::vector<int> model_tensor_shape_;
-    bool detected_;
+    bool detected_in_this_frame_; // a one-shot (one frame) flag
+    bool detected_; // a long-term flag
     bool lost_target_;
     int detecting_frame_cnt_; // the total frame count in detection phase
     int detected_frame_cnt_; // the amount of the frame that  continuously detects the a candidate
@@ -134,11 +138,13 @@ namespace edgetpu_roscpp
     virtual void subscribe();
     virtual void unsubscribe();
 
-    virtual void detection_tracking_process(const sensor_msgs::ImageConstPtr& msg);
+    virtual void detection_tracking_process(const std_msgs::Header& msg_header, cv::Mat& src_img);
+    virtual void publishImg(const std_msgs::Header& msg_header, const cv::Mat& src_img);
 
     void expandedBoundingImage(const cv::Mat& src_img, const coral::BoxCornerEncoding bounding_box, double expanding_bounding_box_rate,
                                cv::Mat& dst_img, coral::BoxCornerEncoding& expanded_bounding_box);
-    std::vector<coral::DetectionCandidate> deepDetection(const cv::Mat input_img, double score_threshold);
+
+    std::vector<coral::DetectionCandidate> deepDetectionCore(const cv::Mat input_img, double score_threshold);
 
   };
 
