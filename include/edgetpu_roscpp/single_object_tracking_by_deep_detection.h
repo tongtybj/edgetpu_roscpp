@@ -56,6 +56,7 @@
 #define DETECTING_TARGET cv::Scalar(0,0,255) // blue
 #define TRACKING_TARGET  cv::Scalar(0,255,0) // green
 #define LOSING_TARGET    cv::Scalar(255,255,0) // yellow
+#define EXPANDED_BOUNDING_BOX    cv::Scalar(255,0,0) // red
 
 
 namespace edgetpu_roscpp
@@ -72,7 +73,7 @@ namespace edgetpu_roscpp
       detected_frame_cnt_(0),
       detecting_frame_cnt_(0),
       lost_target_frame_cnt_(0),
-      target_quality_check_timestamp_(0)
+      status_color_(0)
     {}
 
     coral::BoxCornerEncoding addOffsetForBoundingBox(int offset_x, int offset_y, const coral::BoxCornerEncoding bounding_box)
@@ -90,11 +91,10 @@ namespace edgetpu_roscpp
   protected:
     /* ros publisher */
     ros::Publisher target_bbox_pub_;
-    image_transport::Publisher image_pub_; //for debug
+    image_transport::Publisher image_pub_;
 
     /* ros subscriber */
     image_transport::Subscriber image_sub_;
-    ros::Subscriber cam_info_sub_;
 
     /* image transport */
     boost::shared_ptr<image_transport::ImageTransport> it_;
@@ -108,9 +108,11 @@ namespace edgetpu_roscpp
     int detecting_frame_cnt_; // the total frame count in detection phase
     int detected_frame_cnt_; // the amount of the frame that  continuously detects the a candidate
     int lost_target_frame_cnt_;
+    cv::Scalar status_color_;
+    coral::BoxCornerEncoding expanded_bounding_box_;
     coral::BoxCornerEncoding prev_expanded_bounding_box_;
+    coral::DetectionCandidate best_detection_candidate_;
     coral::DetectionCandidate prev_best_detection_candidate_;
-    double target_quality_check_timestamp_;
 
     /* ros param */
     double coarse_detection_score_threshold_;
@@ -119,7 +121,6 @@ namespace edgetpu_roscpp
     double expanding_bounding_box_rate_;
     double expanding_bounding_box_aspect_ratio_;
     double larger_expanding_bounding_box_rate_;
-    double target_quality_check_duration_;
     int detection_check_frame_num_;
     int lost_target_check_frame_num_;
     int redetection_after_lost_target_frame_num_;
@@ -128,18 +129,14 @@ namespace edgetpu_roscpp
     bool image_view_;
     bool verbose_;
 
-
-    //tf2::Matrix3x3 camera_K_inv_;
-
     void imageCallback(const sensor_msgs::ImageConstPtr& msg);
-    void cameraInfoCallback(const sensor_msgs::CameraInfoConstPtr& msg){}
 
     virtual void onInit();
     virtual void subscribe();
     virtual void unsubscribe();
 
-    virtual void detection_tracking_process(const std_msgs::Header& msg_header, cv::Mat& src_img);
-    virtual void publishImg(const std_msgs::Header& msg_header, const cv::Mat& src_img);
+    virtual void detection_tracking_process(cv::Mat& src_img);
+    virtual void publish(const std_msgs::Header& msg_header, const cv::Mat& src_img);
 
     void expandedBoundingImage(const cv::Mat& src_img, const coral::BoxCornerEncoding bounding_box, double expanding_bounding_box_rate,
                                cv::Mat& dst_img, coral::BoxCornerEncoding& expanded_bounding_box);

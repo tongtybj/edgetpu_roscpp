@@ -51,7 +51,6 @@ namespace edgetpu_roscpp
     pnh_->param("expanding_bounding_box_rate", expanding_bounding_box_rate_, 2.0);
     pnh_->param("expanding_bounding_box_aspect_ratio", expanding_bounding_box_aspect_ratio_, -1.0);
     pnh_->param("larger_expanding_bounding_box_rate", larger_expanding_bounding_box_rate_, 2.0);
-    pnh_->param("target_quality_check_duration", target_quality_check_duration_, 5.0); // second
     pnh_->param("detection_check_frame_num", detection_check_frame_num_, 10);
     pnh_->param("lost_target_check_frame_num", lost_target_check_frame_num_, 5);
     pnh_->param("redetection_after_lost_target_frame_num", redetection_after_lost_target_frame_num_, 5);
@@ -79,7 +78,6 @@ namespace edgetpu_roscpp
   void SingleObjectDeepTrackingDetection::subscribe()
   {
     image_sub_ = it_->subscribe("image", 1, &SingleObjectDeepTrackingDetection::imageCallback, this);
-    cam_info_sub_ = nh_->subscribe("camera_info", 1, &SingleObjectDeepTrackingDetection::cameraInfoCallback, this);
   }
 
   void SingleObjectDeepTrackingDetection::unsubscribe()
@@ -89,18 +87,53 @@ namespace edgetpu_roscpp
 
   void SingleObjectDeepTrackingDetection::imageCallback(const sensor_msgs::ImageConstPtr& msg)
   {
-    cv::Mat src_img = cv_bridge::toCvCopy(msg, sensor_msgs::image_encodings::RGB8)->image;
-    detection_tracking_process(msg->header, src_img);
+    //cv::Mat src_img = cv_bridge::toCvCopy(msg, sensor_msgs::image_encodings::RGB8)->image;
+    cv::Mat src_img = cv_bridge::toCvShare(msg, sensor_msgs::image_encodings::RGB8)->image;
+    detection_tracking_process(src_img);
 
-    if(image_view_) publishImg(msg->header, src_img);
+    if(image_view_) publish(msg->header, src_img);
   }
 
-  void SingleObjectDeepTrackingDetection::publishImg(const std_msgs::Header& msg_header, const cv::Mat& src_img)
+  void SingleObjectDeepTrackingDetection::publish(const std_msgs::Header& msg_header, const cv::Mat& src_img)
   {
+    /* drawd image */
+    if (detected_in_this_frame_)
+      {
+        cv::rectangle(src_img,
+                      cv::Point(best_detection_candidate_.corners.xmin, best_detection_candidate_.corners.ymin),
+                      cv::Point(best_detection_candidate_.corners.xmax, best_detection_candidate_.corners.ymax),
+                      status_color_, 10);
+        cv::putText(src_img, std::to_string(best_detection_candidate_.score),
+                    cv::Point(best_detection_candidate_.corners.xmin, best_detection_candidate_.corners.ymin + 30),
+                    cv::FONT_HERSHEY_SIMPLEX,
+                    1, status_color_, 2, 8, false);
+
+        if(detected_)
+          {
+            cv::rectangle(src_img,
+                          cv::Point(expanded_bounding_box_.xmin, expanded_bounding_box_.ymin),
+                          cv::Point(expanded_bounding_box_.xmax, expanded_bounding_box_.ymax),
+                          EXPANDED_BOUNDING_BOX, 3);
+          }
+
+      }
+
     if(detected_in_this_frame_)
       image_pub_.publish(cv_bridge::CvImage(msg_header, sensor_msgs::image_encodings::RGB8, src_img).toImageMsg());
     else
       image_pub_.publish(cv_bridge::CvImage(msg_header, sensor_msgs::image_encodings::BGR8, src_img).toImageMsg());
+
+    /* bounding box */
+    jsk_recognition_msgs::BoundingBox target_bouding_box_msg;
+    target_bouding_box_msg.header = msg_header;
+    target_bouding_box_msg.value = detected_?best_detection_candidate_.score:-1;
+    target_bouding_box_msg.label = best_detection_candidate_.label;
+    target_bouding_box_msg.pose.position.x = best_detection_candidate_.corners.xmin;
+    target_bouding_box_msg.pose.position.y = best_detection_candidate_.corners.ymin;
+    target_bouding_box_msg.dimensions.x = best_detection_candidate_.corners.xmax - best_detection_candidate_.corners.xmin;
+    target_bouding_box_msg.dimensions.y = best_detection_candidate_.corners.ymax - best_detection_candidate_.corners.ymin;
+    target_bbox_pub_.publish(target_bouding_box_msg);
+
   }
 
   std::vector<coral::DetectionCandidate> SingleObjectDeepTrackingDetection::deepDetectionCore(const cv::Mat input_img, double score_threshold)
@@ -121,7 +154,7 @@ namespace edgetpu_roscpp
       }
 
     return results;
-  };
+  }
 
 
   void SingleObjectDeepTrackingDetection::expandedBoundingImage(const cv::Mat& src_img, const coral::BoxCornerEncoding bounding_box, double expanding_bounding_box_rate, cv::Mat& dst_img, coral::BoxCornerEncoding& expanded_bounding_box)
@@ -184,19 +217,17 @@ namespace edgetpu_roscpp
     //printf("expanded bound box: [%f, %f, %f, %f] \n", expanded_bounding_box.xmin, expanded_bounding_box.ymin, expanded_bounding_box.xmax,expanded_bounding_box.ymax);
 
     dst_img = src_img(cv::Rect(expanded_bounding_box.xmin, expanded_bounding_box.ymin, expanded_bounding_box.xmax - expanded_bounding_box.xmin, expanded_bounding_box.ymax - expanded_bounding_box.ymin));
-  };
+  }
 
-  void SingleObjectDeepTrackingDetection::detection_tracking_process(const std_msgs::Header& msg_header, cv::Mat& src_img)
+  void SingleObjectDeepTrackingDetection::detection_tracking_process(cv::Mat& src_img)
   {
     double start_t = ros::Time::now().toSec();
 
-    coral::DetectionCandidate best_detection_candidate;
-    best_detection_candidate.score = 0;
-    best_detection_candidate.corners.xmin = 0;
-    best_detection_candidate.corners.ymin = 0;
-    best_detection_candidate.corners.xmax = 0;
-    best_detection_candidate.corners.ymax = 0;
-    coral::BoxCornerEncoding expanded_bounding_box;
+    best_detection_candidate_.score = 0;
+    best_detection_candidate_.corners.xmin = 0;
+    best_detection_candidate_.corners.ymin = 0;
+    best_detection_candidate_.corners.xmax = 0;
+    best_detection_candidate_.corners.ymax = 0;
     cv::Mat expanded_bounding_img;
 
     // ROS_ERROR("detected_frame_cnt_: %d", detected_frame_cnt_);
@@ -231,7 +262,7 @@ namespace edgetpu_roscpp
                                     detection_candidates.at(0).corners.xmax, detection_candidates.at(0).corners.ymax);
 
 
-              expandedBoundingImage(src_img, detection_candidates.at(0).corners, expanding_bounding_box_rate_, expanded_bounding_img, expanded_bounding_box);
+              expandedBoundingImage(src_img, detection_candidates.at(0).corners, expanding_bounding_box_rate_, expanded_bounding_img, expanded_bounding_box_);
 
 #if 0
               /* quick detection */
@@ -241,7 +272,7 @@ namespace edgetpu_roscpp
               */
               if(detection_candidates.at(0).score > refined_detection_score_threshold_ && quick_detection_)
                 {
-                  best_detection_candidate = detection_candidates.at(0);
+                  best_detection_candidate_ = detection_candidates.at(0);
                   detected_in_this_frame_ = true;
                   return ;
                 }
@@ -251,19 +282,19 @@ namespace edgetpu_roscpp
 
               if(detection_candidates.size() > 0)
                 {
-                  if(detection_candidates.at(0).score >= best_detection_candidate.score)
+                  if(detection_candidates.at(0).score >= best_detection_candidate_.score)
                     {
-                      best_detection_candidate = detection_candidates.at(0);
+                      best_detection_candidate_ = detection_candidates.at(0);
                       detected_in_this_frame_ = true;
-                      best_detection_candidate.corners = addOffsetForBoundingBox(expanded_bounding_box.xmin,
-                                                                                 expanded_bounding_box.ymin,
-                                                                                 best_detection_candidate.corners);
+                      best_detection_candidate_.corners = addOffsetForBoundingBox(expanded_bounding_box_.xmin,
+                                                                                 expanded_bounding_box_.ymin,
+                                                                                 best_detection_candidate_.corners);
 
                       if(verbose_) ROS_INFO("Found refined candidate in [%d, %d, %d, %d]. Score: %f, BB: [%f, %f, %f, %f]",
                                             xmin, ymin, xmin + width, ymin + height,
-                                            best_detection_candidate.score,
-                                            best_detection_candidate.corners.xmin, best_detection_candidate.corners.ymin,
-                                            best_detection_candidate.corners.xmax, best_detection_candidate.corners.ymax);
+                                            best_detection_candidate_.score,
+                                            best_detection_candidate_.corners.xmin, best_detection_candidate_.corners.ymin,
+                                            best_detection_candidate_.corners.xmax, best_detection_candidate_.corners.ymax);
                     }
                 }
               else
@@ -298,10 +329,10 @@ namespace edgetpu_roscpp
             else
               {
                 /* check whether the target moves continuously */
-                if(best_detection_candidate.corners.xmin >= prev_expanded_bounding_box_.xmin &&
-                   best_detection_candidate.corners.ymin >= prev_expanded_bounding_box_.ymin &&
-                   best_detection_candidate.corners.xmax <= prev_expanded_bounding_box_.xmax &&
-                   best_detection_candidate.corners.ymin <= prev_expanded_bounding_box_.ymax)
+                if(best_detection_candidate_.corners.xmin >= prev_expanded_bounding_box_.xmin &&
+                   best_detection_candidate_.corners.ymin >= prev_expanded_bounding_box_.ymin &&
+                   best_detection_candidate_.corners.xmax <= prev_expanded_bounding_box_.xmax &&
+                   best_detection_candidate_.corners.ymin <= prev_expanded_bounding_box_.ymax)
                   {
                     detected_frame_cnt_++;
                   }
@@ -316,16 +347,16 @@ namespace edgetpu_roscpp
                 lost_target_ = false;
 
                 ROS_WARN("Detected target!. Score: %f, BB: [%f, %f, %f, %f]",
-                         best_detection_candidate.score,
-                         best_detection_candidate.corners.xmin, best_detection_candidate.corners.ymin,
-                         best_detection_candidate.corners.xmax, best_detection_candidate.corners.ymax);
+                         best_detection_candidate_.score,
+                         best_detection_candidate_.corners.xmin, best_detection_candidate_.corners.ymin,
+                         best_detection_candidate_.corners.xmax, best_detection_candidate_.corners.ymax);
 
                 detecting_frame_cnt_ = 0;
                 lost_target_frame_cnt_ = lost_target_check_frame_num_; // reset
               }
 
-            prev_expanded_bounding_box_ = expanded_bounding_box;
-            prev_best_detection_candidate_ = best_detection_candidate;
+            prev_expanded_bounding_box_ = expanded_bounding_box_;
+            prev_best_detection_candidate_ = best_detection_candidate_;
           }
         else
           {
@@ -333,20 +364,9 @@ namespace edgetpu_roscpp
             detected_frame_cnt_ = 0;
           }
 
-        if (detected_in_this_frame_)
-          {
-            cv::rectangle(src_img,
-                          cv::Point(best_detection_candidate.corners.xmin, best_detection_candidate.corners.ymin),
-                          cv::Point(best_detection_candidate.corners.xmax, best_detection_candidate.corners.ymax),
-                          DETECTING_TARGET, 10);
-            cv::putText(src_img, std::to_string(best_detection_candidate.score),
-                        cv::Point(best_detection_candidate.corners.xmin, best_detection_candidate.corners.ymin + 30),
-                        cv::FONT_HERSHEY_SIMPLEX,
-                        1, DETECTING_TARGET, 2, 8, false);
+        status_color_ = DETECTING_TARGET;
 
-          }
-
-        //ROS_WARN("score: %f in [%f, %f, %f, %f]", best_detection_candidate.score, best_detection_candidate.corners.xmin, best_detection_candidate.corners.ymin, best_detection_candidate.corners.xmax, best_detection_candidate.corners.ymax);
+        //ROS_WARN("score: %f in [%f, %f, %f, %f]", best_detection_candidate_.score, best_detection_candidate_.corners.xmin, best_detection_candidate_.corners.ymin, best_detection_candidate_.corners.xmax, best_detection_candidate_.corners.ymax);
 
         detecting_frame_cnt_ ++;
 
@@ -363,61 +383,61 @@ namespace edgetpu_roscpp
         detected_in_this_frame_ = true;
 
         bool larger_expanding_bbox = false;
-        cv::Scalar status_color = TRACKING_TARGET;
+        status_color_ = TRACKING_TARGET;
 
-        expandedBoundingImage(src_img, prev_best_detection_candidate_.corners, expanding_bounding_box_rate_, expanded_bounding_img, expanded_bounding_box);
+        expandedBoundingImage(src_img, prev_best_detection_candidate_.corners, expanding_bounding_box_rate_, expanded_bounding_img, expanded_bounding_box_);
 
         auto detection_candidates = deepDetectionCore(expanded_bounding_img, tracking_score_threshold_);
 
         if(detection_candidates.size() > 0)
           {
             lost_target_frame_cnt_ = lost_target_check_frame_num_; // reset
-            best_detection_candidate = detection_candidates.at(0);
-            best_detection_candidate.corners = addOffsetForBoundingBox(expanded_bounding_box.xmin,
-                                                                       expanded_bounding_box.ymin,
-                                                                       best_detection_candidate.corners);
+            best_detection_candidate_ = detection_candidates.at(0);
+            best_detection_candidate_.corners = addOffsetForBoundingBox(expanded_bounding_box_.xmin,
+                                                                       expanded_bounding_box_.ymin,
+                                                                       best_detection_candidate_.corners);
             if(verbose_)
               {
                 ROS_INFO("Found taget candidate in tracking mode. Score: %f, BB: [%f, %f, %f, %f], Expanded BB: [%f, %f, %f, %f]",
-                         best_detection_candidate.score,
-                         best_detection_candidate.corners.xmin, best_detection_candidate.corners.ymin,
-                         best_detection_candidate.corners.xmax, best_detection_candidate.corners.ymax,
-                         expanded_bounding_box.xmin, expanded_bounding_box.ymin,
-                         expanded_bounding_box.xmax, expanded_bounding_box.ymax);
+                         best_detection_candidate_.score,
+                         best_detection_candidate_.corners.xmin, best_detection_candidate_.corners.ymin,
+                         best_detection_candidate_.corners.xmax, best_detection_candidate_.corners.ymax,
+                         expanded_bounding_box_.xmin, expanded_bounding_box_.ymin,
+                         expanded_bounding_box_.xmax, expanded_bounding_box_.ymax);
               }
           }
         else
           {
             /* re-detection by using broader expanded_bouding_box */
-            expandedBoundingImage(src_img, prev_best_detection_candidate_.corners, larger_expanding_bounding_box_rate_, expanded_bounding_img, expanded_bounding_box);
+            expandedBoundingImage(src_img, prev_best_detection_candidate_.corners, larger_expanding_bounding_box_rate_, expanded_bounding_img, expanded_bounding_box_);
             auto detection_candidates = deepDetectionCore(expanded_bounding_img, tracking_score_threshold_);
 
             if(detection_candidates.size() > 0)
               {
                 lost_target_frame_cnt_ = lost_target_check_frame_num_; // reset
-                best_detection_candidate = detection_candidates.at(0);
-                best_detection_candidate.corners = addOffsetForBoundingBox(expanded_bounding_box.xmin,
-                                                                           expanded_bounding_box.ymin,
-                                                                           best_detection_candidate.corners);
+                best_detection_candidate_ = detection_candidates.at(0);
+                best_detection_candidate_.corners = addOffsetForBoundingBox(expanded_bounding_box_.xmin,
+                                                                           expanded_bounding_box_.ymin,
+                                                                           best_detection_candidate_.corners);
                 if(verbose_)
                   {
                     ROS_INFO("Found taget candidate in tracking mode (redetection). Score: %f, BB: [%f, %f, %f, %f], Expanded BB: [%f, %f, %f, %f]",
-                             best_detection_candidate.score,
-                             best_detection_candidate.corners.xmin, best_detection_candidate.corners.ymin,
-                             best_detection_candidate.corners.xmax, best_detection_candidate.corners.ymax,
-                             expanded_bounding_box.xmin, expanded_bounding_box.ymin,
-                             expanded_bounding_box.xmax, expanded_bounding_box.ymax);
+                             best_detection_candidate_.score,
+                             best_detection_candidate_.corners.xmin, best_detection_candidate_.corners.ymin,
+                             best_detection_candidate_.corners.xmax, best_detection_candidate_.corners.ymax,
+                             expanded_bounding_box_.xmin, expanded_bounding_box_.ymin,
+                             expanded_bounding_box_.xmax, expanded_bounding_box_.ymax);
                   }
               }
             else
               {
                 lost_target_frame_cnt_--;
 
-                best_detection_candidate = prev_best_detection_candidate_; // keep the last result
+                best_detection_candidate_ = prev_best_detection_candidate_; // keep the last result
 
                 if(verbose_) ROS_INFO("Losing target after redetection.");
 
-                status_color = LOSING_TARGET;
+                status_color_ = LOSING_TARGET;
                 if(lost_target_frame_cnt_ <= 0)
                   {
                     ROS_WARN_STREAM("Lost target with tracking score threshould " << tracking_score_threshold_);
@@ -426,60 +446,14 @@ namespace edgetpu_roscpp
                     detected_in_this_frame_ = false;
                     detected_frame_cnt_ = 0;
                   }
-                //target_quality_check_timestamp_ =  0;
               }
             larger_expanding_bbox = true;
           }
 
-        /* do target quality check */
-        if(ros::Time::now().toSec() - target_quality_check_timestamp_ > target_quality_check_duration_)
-          {
-            target_quality_check_timestamp_ = ros::Time::now().toSec();
-            // TODO
-          }
-
-        cv::Scalar expanded_bounding_box_color(255,0,0);
-        if(larger_expanding_bbox) expanded_bounding_box_color = cv::Scalar(255,165,0);
-        cv::rectangle(src_img,
-                      cv::Point(expanded_bounding_box.xmin, expanded_bounding_box.ymin),
-                      cv::Point(expanded_bounding_box.xmax, expanded_bounding_box.ymax),
-                      expanded_bounding_box_color, 3);
-
-        if (detected_in_this_frame_)
-          {
-            /*
-              cv::rectangle(src_img,
-              cv::Point(prev_best_detection_candidate_.corners.xmin, prev_best_detection_candidate_.corners.ymin),
-              cv::Point(prev_best_detection_candidate_.corners.xmax, prev_best_detection_candidate_.corners.ymax),
-              cv::Scalar(255,0,255), 2);
-            */
-            cv::putText(src_img, std::to_string(best_detection_candidate.score),
-                        cv::Point(best_detection_candidate.corners.xmin, best_detection_candidate.corners.ymin + 30),
-                        cv::FONT_HERSHEY_SIMPLEX,
-                        1, status_color, 2, 8, false);
-
-            cv::rectangle(src_img,
-                          cv::Point(best_detection_candidate.corners.xmin, best_detection_candidate.corners.ymin),
-                          cv::Point(best_detection_candidate.corners.xmax, best_detection_candidate.corners.ymax),
-                          status_color, 10);
-          }
-
-
         /* update */
-        prev_expanded_bounding_box_ = expanded_bounding_box;
-        prev_best_detection_candidate_ = best_detection_candidate;
+        prev_expanded_bounding_box_ = expanded_bounding_box_;
+        prev_best_detection_candidate_ = best_detection_candidate_;
       }
-
-    /* publish */
-    jsk_recognition_msgs::BoundingBox target_bouding_box_msg;
-    target_bouding_box_msg.header = msg_header;
-    target_bouding_box_msg.value = detected_?best_detection_candidate.score:-1;
-    target_bouding_box_msg.label = best_detection_candidate.label;
-    target_bouding_box_msg.pose.position.x = best_detection_candidate.corners.xmin;
-    target_bouding_box_msg.pose.position.y = best_detection_candidate.corners.ymin;
-    target_bouding_box_msg.dimensions.x = best_detection_candidate.corners.xmax - best_detection_candidate.corners.xmin;
-    target_bouding_box_msg.dimensions.y = best_detection_candidate.corners.ymax - best_detection_candidate.corners.ymin;
-    target_bbox_pub_.publish(target_bouding_box_msg);
 
     if(verbose_) ROS_INFO_STREAM("............... Total process time for this frame is " << ros::Time::now().toSec() - start_t);
   }
