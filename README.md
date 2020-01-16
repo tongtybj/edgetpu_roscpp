@@ -68,7 +68,7 @@ $ roslaunch edgetpu_roscpp single_object_tracking_by_detection.launch  image_vie
 $ roslaunch video_stream_opencv camera.launch video_stream_provider:=`rospack find edgetpu_roscpp`/test/data/DJI_0004.MP4
 $ rqt_image_view /single_object_detection_and_tracking/detection_result_image
 ```
-**note**: you can also play other video, also add `start_frame` and `stop_frame` to set the start and end point of a video, and `fps` to set the frame rate:
+**note1**: you can also play other video, also add `start_frame` and `stop_frame` to set the start and end point of a video, and `fps` to set the frame rate:
 - example 1: start a video from the middle with slower rate 10Hz.
 ```
 $ roslaunch video_stream_opencv camera.launch video_stream_provider:=`rospack find edgetpu_roscpp`/test/data/DJI_0006.MP4 loop_videofile:=true start_frame:=7830 stop_frame:=-1 fps:=10
@@ -79,9 +79,7 @@ $ roslaunch video_stream_opencv camera.launch video_stream_provider:=`rospack fi
 $ roslaunch video_stream_opencv camera.launch video_stream_provider:=/home/leus/drone_detection_dataset/video/DJI_0006.MP4 loop_videofile:=true start_frame:=6620 stop_frame:=6621 fps:=1
 ```
 
-- exampl 3: tracking object from rosbag.
+**note2**: you can download more video data by following command:
 ```
-$ roslaunch edgetpu_roscpp single_object_tracking_by_detection.launch  image_view:=true verbose:=false coarse_detection_score_threshold:=0.0 refined_detection_score_threshold:=0.71  tracking_score_threshold:=0.7  keep_aspect_ratio_in_expanded_bbox:=true keep_aspect_ratio_in_inference:=false quick_detection:=true model_file:=/home/chou/object_learn/train_data/train_retrain_from_326_GPU_GTX1080Ti_5000_batch64_add_valdata_rescore_603/models/output_tflite_graph_edgetpu.tflite image_topic:=/rs_d435/color/image_rect_color expanding_bounding_box_rate:=2.0 expanding_bounding_box_aspect_ratio:=1.0
-$ rosbag play 2020-01-03-kashiwa-hydrus-rsd435-task1-detection-rawdata1-3.bag --pause
+$ rosrun edgetpu_roscpp install_additional_video_data.py
 ```
-
