@@ -73,7 +73,8 @@ namespace edgetpu_roscpp
       detected_frame_cnt_(0),
       detecting_frame_cnt_(0),
       lost_target_frame_cnt_(0),
-      status_color_(0)
+      status_color_(0),
+      image_pub_t_(0)
     {}
 
     coral::BoxCornerEncoding addOffsetForBoundingBox(int offset_x, int offset_y, const coral::BoxCornerEncoding bounding_box)
@@ -121,6 +122,8 @@ namespace edgetpu_roscpp
     double expanding_bounding_box_rate_;
     double expanding_bounding_box_aspect_ratio_;
     double larger_expanding_bounding_box_rate_;
+    double image_pub_throttle_rate_;
+    double image_pub_t_;
     int detection_check_frame_num_;
     int lost_target_check_frame_num_;
     int redetection_after_lost_target_frame_num_;

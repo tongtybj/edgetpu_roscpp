@@ -54,6 +54,7 @@ namespace edgetpu_roscpp
     pnh_->param("detection_check_frame_num", detection_check_frame_num_, 10);
     pnh_->param("lost_target_check_frame_num", lost_target_check_frame_num_, 5);
     pnh_->param("redetection_after_lost_target_frame_num", redetection_after_lost_target_frame_num_, 5);
+    pnh_->param("image_pub_throttle_rate", image_pub_throttle_rate_, 30.0);
 
     pnh_->param("quick_detection", quick_detection_, false);
     pnh_->param("keep_aspect_ratio_in_inference", keep_aspect_ratio_in_inference_, false);
@@ -118,10 +119,15 @@ namespace edgetpu_roscpp
 
       }
 
-    if(detected_in_this_frame_)
-      image_pub_.publish(cv_bridge::CvImage(msg_header, sensor_msgs::image_encodings::RGB8, src_img).toImageMsg());
-    else
-      image_pub_.publish(cv_bridge::CvImage(msg_header, sensor_msgs::image_encodings::BGR8, src_img).toImageMsg());
+    if(ros::Time::now().toSec() - image_pub_t_ >= 1 / image_pub_throttle_rate_)
+      {
+        if(detected_in_this_frame_)
+          image_pub_.publish(cv_bridge::CvImage(msg_header, sensor_msgs::image_encodings::RGB8, src_img).toImageMsg());
+        else
+          image_pub_.publish(cv_bridge::CvImage(msg_header, sensor_msgs::image_encodings::BGR8, src_img).toImageMsg());
+
+        image_pub_t_ = ros::Time::now().toSec();
+      }
 
     /* bounding box */
     jsk_recognition_msgs::BoundingBox target_bouding_box_msg;

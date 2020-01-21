@@ -19,6 +19,8 @@
   <arg name= "quick_detection" default = "false" />
   <arg name= "keep_aspect_ratio_in_inference" default = "false" />
 
+  <arg name= "image_pub_throttle_rate" default="30.0"/>
+
   <node pkg="nodelet" type="nodelet" name="detection_nodelet" args="manager" output="screen" if="$(arg need_nodelet_manager)"/>
 
   <node pkg="nodelet" type="nodelet" name="single_object_detection_and_tracking"
@@ -38,6 +40,7 @@
     <param name="quick_detection" value="$(arg quick_detection)"/>
     <param name="keep_aspect_ratio_in_inference" value="$(arg keep_aspect_ratio_in_inference)"/>
     <param name="image_view" value="$(arg image_view)"/>
+    <param name="image_pub_throttle_rate" value="$(arg image_pub_throttle_rate)"/>
     <param name="verbose" value="$(arg verbose)"/>
   </node>
 
