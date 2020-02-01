@@ -30,6 +30,23 @@ def main():
         extract=False,
     )
 
+    # co-compile two model (same content)
+    download_data(
+        pkg_name=PKG,
+        path='test/data/drone_detection_co_compile1_edgetpu.tflite',
+        url='https://drive.google.com/uc?id=1SeC_TnsOAHUrqnAMLdXDPJaX-4VD5t4z',
+        md5='37a10015390a5a33a21daa11e6b8f712',
+        extract=False,
+    )
+
+    download_data(
+        pkg_name=PKG,
+        path='test/data/drone_detection_co_compile2_edgetpu.tflite',
+        url='https://drive.google.com/uc?id=140othb2fmY0B-fK_EDG5pIda8lqgT7UW',
+        md5='5f7eca3309f0e21df8e4e368575342c1',
+        extract=False,
+    )
+
 if __name__ == '__main__':
     main()
 

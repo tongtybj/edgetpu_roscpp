@@ -42,8 +42,9 @@ namespace edgetpu_roscpp
     DiagnosticNodelet::onInit();
     /* ros params */
     /** for size filter mode **/
-    std::string model_file, label_file;
+    std::string model_file, model2_file, label_file;
     pnh_->param("model_file", model_file, std::string(""));
+    pnh_->param("model2_file", model2_file, std::string(""));
     pnh_->param("label_file", label_file, std::string(""));
     pnh_->param("top_k", top_k_, 2);
     pnh_->param("score_threshold", score_threshold_, 0.3);
@@ -54,6 +55,8 @@ namespace edgetpu_roscpp
 
     labels_ = coral::ReadLabelFile(label_file);
     detection_engine_ = boost::make_shared<coral::DetectionEngine>(model_file);
+    if(model2_file != std::string(""))
+      detection2_engine_ = boost::make_shared<coral::DetectionEngine>(model2_file);
     model_tensor_shape_ = detection_engine_->get_input_tensor_shape(); // [1, height, width, 3]
     if(model_tensor_shape_.size() != 4 || model_tensor_shape_.at(0) != 1 || model_tensor_shape_.at(3) != 3)
       throw std::runtime_error("the input tensor shape for classification is not correct");
@@ -85,9 +88,11 @@ namespace edgetpu_roscpp
     resize(src_img, cv::Size(model_tensor_shape_.at(2), model_tensor_shape_.at(1)), keep_aspect_ratio_, resized_img, ratio);
     std::vector<uint8_t> input_tensor(resized_img.data, resized_img.data + (resized_img.cols * resized_img.rows * resized_img.elemSize()));
 
+    /* first model */
+    double start_t = ros::Time::now().toSec();
     auto results = detection_engine_->DetectWithInputTensor(input_tensor, score_threshold_, top_k_);
 
-    if(verbose_) ROS_INFO("deep detection result:");
+    if(verbose_) ROS_INFO("deep detection1 result:");
 
     for (auto result : results)
       {
@@ -120,6 +125,53 @@ namespace edgetpu_roscpp
                         cv::FONT_HERSHEY_SIMPLEX,
                         1, cv::Scalar(0,0,255), 2, 8, false);
           }
+      }
+
+    double t1 = ros::Time::now().toSec() - start_t;
+
+    if(detection2_engine_ != nullptr)
+      {
+        start_t = ros::Time::now().toSec();
+        results = detection2_engine_->DetectWithInputTensor(input_tensor, score_threshold_, top_k_);
+
+        if(verbose_) ROS_INFO("deep detection2 result:");
+
+        for (auto result : results)
+          {
+            result.corners.xmin *= (src_img.size().width / ratio.width);
+            result.corners.xmax *= (src_img.size().width / ratio.width);
+            result.corners.ymin *= (src_img.size().height / ratio.height);
+            result.corners.ymax *= (src_img.size().height / ratio.height);
+
+            if(verbose_)
+              {
+                std::cout << "---------------------------" << std::endl;
+                std::cout << labels_[result.label] << std::endl;
+                std::cout << "Score: " << result.score << std::endl;
+                std::cout << "Box: ["
+                          << result.corners.xmin << ", "
+                          << result.corners.ymin << ", "
+                          << result.corners.xmax << ", "
+                          << result.corners.ymax << "] "
+                          << std::endl;
+              }
+
+            if(image_view_)
+              {
+                cv::rectangle(src_img,
+                              cv::Point(result.corners.xmin, result.corners.ymin),
+                              cv::Point(result.corners.xmax, result.corners.ymax),
+                              cv::Scalar(255,0,0), 10);
+                cv::putText(src_img, std::to_string(result.score),
+                            cv::Point(result.corners.xmin, result.corners.ymin + 30),
+                            cv::FONT_HERSHEY_SIMPLEX,
+                            1, cv::Scalar(255,0,0), 2, 8, false);
+              }
+
+          }
+        double t2 = ros::Time::now().toSec() - start_t;
+
+        if(verbose_)  ROS_WARN("t1: %f, t2: %f", t1, t2);
       }
 
     if(image_view_) image_pub_.publish(cv_bridge::CvImage(msg->header, sensor_msgs::image_encodings::RGB8, src_img).toImageMsg());

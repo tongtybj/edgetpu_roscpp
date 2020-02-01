@@ -72,6 +72,7 @@ namespace edgetpu_roscpp
 
     /* detection */
     boost::shared_ptr<coral::DetectionEngine> detection_engine_;
+    boost::shared_ptr<coral::DetectionEngine> detection2_engine_;
     std::vector<int> model_tensor_shape_;
     std::unordered_map<int, std::string> labels_;
 

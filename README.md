@@ -40,6 +40,14 @@ $ roslaunch video_stream_opencv camera.launch video_stream_provider:=`rospack fi
 $ rqt_image_view /deep_object_detection/detection_result
 ```
 
+### option: single object detection with co-compile models (two identical ssd model):
+```
+$ roslaunch edgetpu_roscpp detection_with_cocompiled_modes.launch
+$ roslaunch video_stream_opencv camera.launch video_stream_provider:=`rospack find edgetpu_roscpp`/test/data/DJI_0004.MP4 loop_videofile:=true
+$ rqt_image_view /deep_object_detection/detection_result
+```
+
+
 ### single object tracking by detection:
 
 #### status color:

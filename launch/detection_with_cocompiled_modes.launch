@@ -1,0 +1,30 @@
+<launch>
+  <arg name= "need_nodelet_manager" default= "true"/>
+  <arg name= "image_view" default="true"/>
+  <arg name= "verbose" default="true"/>
+
+  <arg name= "model_file"  default = "$(find edgetpu_roscpp)/test/data/drone_detection_co_compile1_edgetpu.tflite" />
+  <arg name= "model2_file"  default = "$(find edgetpu_roscpp)/test/data/drone_detection_co_compile2_edgetpu.tflite" />
+  <arg name= "label_file" default = "$(find edgetpu_roscpp)/test/data/drone_detection_labels.txt" />
+  <arg name= "keep_aspect_ratio" default = "false" />
+  <arg name= "top_k" default = "1" />
+  <arg name= "score_threshold" default = "0.3" />
+  <arg name= "image_topic" default = "/camera/image_raw" />
+
+
+  <node pkg="nodelet" type="nodelet" name="detection_nodelet" args="manager" output="screen" if="$(arg need_nodelet_manager)"/>
+
+  <node pkg="nodelet" type="nodelet" name="deep_object_detection"
+        args="load edgetpu_roscpp/DeepObjectDetection detection_nodelet" output="screen">
+    <remap from="image" to="$(arg image_topic)" />
+    <param name="model_file" value="$(arg model_file)"/>
+    <param name="model2_file" value="$(arg model2_file)"/>
+    <param name="label_file" value="$(arg label_file)"/>
+    <param name="keep_aspect_ratio" value="$(arg keep_aspect_ratio)"/>
+    <param name="top_k" value="$(arg top_k)"/>
+    <param name="score_threshold" value="$(arg score_threshold)"/>
+    <param name="image_view" value="$(arg image_view)"/>
+    <param name="verbose" value="$(arg verbose)"/>
+  </node>
+
+</launch>
