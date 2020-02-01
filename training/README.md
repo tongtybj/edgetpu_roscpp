@@ -47,7 +47,7 @@ $ npm start
 
 5. export the project result
 
-### prepare for the training dataset
+### prepare for the training dataset (Deprecated)
 1. use python3 (> 3.6) in virtualenv in host pc:
 ```
 $ sudo apt install python-virtualenv
