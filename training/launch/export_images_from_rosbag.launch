@@ -1,0 +1,16 @@
+<launch>
+  <arg name="rosbag_file"/>
+  <arg name="start_time" default="0" />
+  <arg name="duration" default="100" />
+  <arg name="sec_per_frame" default="1" />
+  <arg name="image_topic" default="/camera/image_raw" />
+  <arg name="filename_prefix" default="image" />
+  <arg name="filename_format" default="$(arg filename_prefix)%04d.jpg" />
+
+  <node pkg="rosbag" type="play" name="rosbag" args="-s $(arg start_time) -u $(arg duration) $(arg rosbag_file)"/>
+  <node name="extract" pkg="image_view" type="extract_images" respawn="false" output="screen" cwd="ROS_HOME">
+    <remap from="image" to="$(arg image_topic)"/>
+    <param name="sec_per_frame" value="$(arg sec_per_frame)" />
+    <param name="filename_format" value="$(arg filename_format)" />
+  </node>
+</launch>
