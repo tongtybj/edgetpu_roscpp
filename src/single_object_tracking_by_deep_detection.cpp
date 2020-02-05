@@ -142,14 +142,14 @@ namespace edgetpu_roscpp
 
   }
 
-  std::vector<coral::DetectionCandidate> SingleObjectDeepTrackingDetection::deepDetectionCore(const cv::Mat input_img, double score_threshold)
+  std::vector<coral::DetectionCandidate> SingleObjectDeepTrackingDetection::deepDetectionCore(const cv::Mat input_img, double score_threshold, int candidate_num)
   {
     cv::Mat resized_img;
     CvSize2D32f ratio(1.0, 1.0);
     resize(input_img, cv::Size(model_tensor_shape_.at(2), model_tensor_shape_.at(1)), keep_aspect_ratio_in_inference_, resized_img, ratio);
     std::vector<uint8_t> input_tensor(resized_img.data, resized_img.data + (resized_img.cols * resized_img.rows * resized_img.elemSize()));
 
-    auto results = detection_engine_->DetectWithInputTensor(input_tensor, score_threshold, 1);
+    auto results = detection_engine_->DetectWithInputTensor(input_tensor, score_threshold, candidate_num);
 
     for (auto& result: results)
       {

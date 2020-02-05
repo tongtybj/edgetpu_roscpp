@@ -144,7 +144,7 @@ namespace edgetpu_roscpp
     void expandedBoundingImage(const cv::Mat& src_img, const coral::BoxCornerEncoding bounding_box, double expanding_bounding_box_rate,
                                cv::Mat& dst_img, coral::BoxCornerEncoding& expanded_bounding_box);
 
-    std::vector<coral::DetectionCandidate> deepDetectionCore(const cv::Mat input_img, double score_threshold);
+    std::vector<coral::DetectionCandidate> deepDetectionCore(const cv::Mat input_img, double score_threshold, int candidate_num = 1);
 
   };
 
