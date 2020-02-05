@@ -46,8 +46,7 @@ void resize(const cv::Mat& input_img, const cv::Size required_size, bool keep_as
 
 
       new_size = cv::Size(input_img.size().width * resampling_ratio, input_img.size().height * resampling_ratio);
-      std::cout << "[" << input_img.size().width << ", " << input_img.size().height << "] -> "
-                << "[" << new_size.width << ", " << new_size.height << "]" << std::endl;
+      //std::cout << "[" << input_img.size().width << ", " << input_img.size().height << "] -> "  << "[" << new_size.width << ", " << new_size.height << "]" << std::endl;
 
       cv::Mat resized_img;
       cv::resize(input_img, resized_img, new_size);

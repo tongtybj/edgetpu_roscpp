@@ -142,14 +142,14 @@ namespace edgetpu_roscpp
 
   }
 
-  std::vector<coral::DetectionCandidate> SingleObjectDeepTrackingDetection::deepDetectionCore(const cv::Mat input_img, double score_threshold, int candidate_num)
+  std::vector<coral::DetectionCandidate> SingleObjectDeepTrackingDetection::deepDetectionCore(boost::shared_ptr<coral::DetectionEngine> detection_engine, const cv::Mat input_img, double score_threshold, int candidate_num)
   {
     cv::Mat resized_img;
     CvSize2D32f ratio(1.0, 1.0);
     resize(input_img, cv::Size(model_tensor_shape_.at(2), model_tensor_shape_.at(1)), keep_aspect_ratio_in_inference_, resized_img, ratio);
     std::vector<uint8_t> input_tensor(resized_img.data, resized_img.data + (resized_img.cols * resized_img.rows * resized_img.elemSize()));
 
-    auto results = detection_engine_->DetectWithInputTensor(input_tensor, score_threshold, candidate_num);
+    auto results = detection_engine->DetectWithInputTensor(input_tensor, score_threshold, candidate_num);
 
     for (auto& result: results)
       {
@@ -252,7 +252,7 @@ namespace edgetpu_roscpp
           if(detected_in_this_frame_  && quick_detection_) return;
 
           auto dst_img = src_img(cv::Rect(xmin, ymin, width, height));
-          detection_candidates = deepDetectionCore(dst_img, coarse_detection_score_threshold_);
+          detection_candidates = deepDetectionCore(detection_engine_, dst_img, coarse_detection_score_threshold_);
 
           if(verbose_) ROS_INFO("coarse detection founds %d candidate in [%d, %d, %d, %d]",
                                 (int)detection_candidates.size(), xmin, ymin, xmin + width, ymin + height);
@@ -284,7 +284,7 @@ namespace edgetpu_roscpp
                 }
 #endif
               /* refined detection */
-              detection_candidates = deepDetectionCore(expanded_bounding_img, refined_detection_score_threshold_);
+              detection_candidates = deepDetectionCore(detection_engine_, expanded_bounding_img, refined_detection_score_threshold_);
 
               if(detection_candidates.size() > 0)
                 {
@@ -393,7 +393,7 @@ namespace edgetpu_roscpp
 
         expandedBoundingImage(src_img, prev_best_detection_candidate_.corners, expanding_bounding_box_rate_, expanded_bounding_img, expanded_bounding_box_);
 
-        auto detection_candidates = deepDetectionCore(expanded_bounding_img, tracking_score_threshold_);
+        auto detection_candidates = deepDetectionCore(detection_engine_, expanded_bounding_img, tracking_score_threshold_);
 
         if(detection_candidates.size() > 0)
           {
@@ -416,7 +416,7 @@ namespace edgetpu_roscpp
           {
             /* re-detection by using broader expanded_bouding_box */
             expandedBoundingImage(src_img, prev_best_detection_candidate_.corners, larger_expanding_bounding_box_rate_, expanded_bounding_img, expanded_bounding_box_);
-            auto detection_candidates = deepDetectionCore(expanded_bounding_img, tracking_score_threshold_);
+            auto detection_candidates = deepDetectionCore(detection_engine_, expanded_bounding_img, tracking_score_threshold_);
 
             if(detection_candidates.size() > 0)
               {
