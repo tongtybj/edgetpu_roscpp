@@ -104,11 +104,18 @@ namespace edgetpu_roscpp
                       cv::Point(best_detection_candidate_.corners.xmin, best_detection_candidate_.corners.ymin),
                       cv::Point(best_detection_candidate_.corners.xmax, best_detection_candidate_.corners.ymax),
                       status_color_, 10);
-        cv::putText(src_img, std::to_string(best_detection_candidate_.score),
-                    cv::Point(best_detection_candidate_.corners.xmin, best_detection_candidate_.corners.ymin + 30),
-                    cv::FONT_HERSHEY_SIMPLEX,
-                    1, status_color_, 2, 8, false);
+        if (best_detection_candidate_.corners.ymin - 30 > 0)
+          cv::putText(src_img, std::to_string(best_detection_candidate_.score),
+                      cv::Point(best_detection_candidate_.corners.xmin, best_detection_candidate_.corners.ymin - 30),
+                      cv::FONT_HERSHEY_SIMPLEX,
+                      1, status_color_, 2, 8, false);
+        else
+          cv::putText(src_img, std::to_string(best_detection_candidate_.score),
+                      cv::Point(best_detection_candidate_.corners.xmin, best_detection_candidate_.corners.ymin + 30),
+                      cv::FONT_HERSHEY_SIMPLEX,
+                      1, status_color_, 2, 8, false);
 
+        /*
         if(detected_)
           {
             cv::rectangle(src_img,
@@ -116,7 +123,7 @@ namespace edgetpu_roscpp
                           cv::Point(expanded_bounding_box_.xmax, expanded_bounding_box_.ymax),
                           EXPANDED_BOUNDING_BOX, 3);
           }
-
+        */
       }
 
     if(ros::Time::now().toSec() - image_pub_t_ >= 1 / image_pub_throttle_rate_)
