@@ -26,6 +26,10 @@ if (NOT EXISTS ${TENSORFLOW_DIR})
     COMMAND git checkout ${TENSORFLOW_COMMIT}
     WORKING_DIRECTORY ${TENSORFLOW_DIR}
     )
+  execute_process( # patch
+    COMMAND sed -i "/^EIGEN_URL=/cEIGEN_URL=\"\$(grep -o 'https://storage.googleapis.com/mirror.tensorflow.org/bitbucket.org/eigen/eigen/get/.*tar.gz' \"\${BZL_FILE_PATH}\")\"" download_dependencies.sh
+    WORKING_DIRECTORY ${TENSORFLOW_DIR}/tensorflow/lite/tools/make
+    )
   execute_process(
     COMMAND bash "download_dependencies.sh"
     WORKING_DIRECTORY ${TENSORFLOW_DIR}/tensorflow/lite/tools/make
