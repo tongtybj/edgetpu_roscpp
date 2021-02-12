@@ -45,31 +45,20 @@ $ npm start
         4. share the project in other PC (under development)
            you have to check the security token as mentioned in [security-tokens](https://github.com/microsoft/VoTT#security-tokens).
 
-5. export the project result
+4. export the project result
 
-### prepare for the training dataset (Deprecated)
-1. use python3 (> 3.6) in virtualenv in host pc:
-```
-$ sudo apt install python-virtualenv
-$ cd ~ && mkdir -p python-venv && cd python-venv
-$ virtualenv -p python3.6 venv-py3-6
-$ source venv-py3-6/bin/activate
-```
+Please check following outputs generated:
+- annotation file: `${HOME}/object_learn/annotation/<vott_project_name>-TFRecords-export/tf_label_map.pbtxt`
+- dataset: `${HOME}/object_learn/annotation/<vott_project_name>-TFRecords-export/*.tfrecord`
 
-2. install `split-folders`:
+5. link to proper path:
 ```
-(venv-python3-6)$ pip install split-folders tqdm
+$ mkdir ${HOME}/object_learn/train_data/dataset
+$ ln -nfs ${HOME}/object_learn/annotation/<vott_project_name>-TFRecords-export ${HOME}/object_learn/train_data/dataset/train/
+$ ln -nfs ${HOME}/object_learn/annotation/<vott_project_name>-TFRecords-export ${HOME}/object_learn/train_data/dataset/val/
+$ cp ${HOME}/object_learn/annotation/<vott_project_name>-TFRecords-export/tf_label_map.pbtxt ${HOME}/object_learn/train_data/dataset/
 ```
-
-3. use [split-folders](https://pypi.org/project/split-folders/) to create directories for training and validation:
-```
-(venv-python3-6)$ cd ${HOME}/object_learn/train_data
-(venv-python3-6)$ mkdir input/class1
-(venv-python3-6)$ ln -nfs ${HOME}/object_learn/annotation/<vott_project_name>-TFRecords-export/*.tfrecord ${HOME}/object_learn/train_data/input/class1
-(venv-python3-6)$ split_folders ${HOME}/drone_learn/train_data/input --ratio .9 .1
-(venv-python3-6)$ cp ${HOME}/object_learn/annotation/<vott_project_name>-TFRecords-export/tf_label_map.pbtxt ${HOME}/object_learn/train_data/output/
-```
-**note**: you can do `(venv-python3-6)$ deactivate` to stop the virtualvenv.
+**OPTION**: last command means you have same dataset for training and validation. You can also split to dataset to training/evalidation chunk (see `split-folders` in other tips) 
 
 ## traninig in docker
 1. build docker file and start docker
@@ -149,3 +138,21 @@ $ ./prepare_checkpoint_and_dataset.sh --train_whole_model false --network_type m
     - simple tutorial for inference and tranining in Japanese: https://github.com/knorth55/73b2_kitchen_edgetpu_object_detection
     - tranining in docker with GPU: https://github.com/knorth55/73b2_kitchen_edgetpu_object_detection
 
+
+- use [split-folders](https://pypi.org/project/split-folders/) to create directories for training and validation:
+  1. create  virtualenv with python3 (> 3.6) in host pc:
+  ```
+  $ sudo apt install python-virtualenv
+  $ cd ~ && mkdir -p python-venv && cd python-venv
+  $ virtualenv -p python3.6 venv-py3-6
+  $ source venv-py3-6/bin/activate
+  ```
+  2. 
+  ```
+  (venv-python3-6)$ pip install split-folders tqdm
+  (venv-python3-6)$ cd ${HOME}/object_learn/train_data
+  (venv-python3-6)$ mkdir input/class1
+  (venv-python3-6)$ ln -nfs ${HOME}/object_learn/annotation/<vott_project_name>-TFRecords-export/*.tfrecord ${HOME}/object_learn/train_data/input/class1
+  (venv-python3-6)$ split_folders ${HOME}/drone_learn/train_data/input --ratio .9 .1
+  (venv-python3-6)$ cp ${HOME}/object_learn/annotation/<vott_project_name>-TFRecords-export/tf_label_map.pbtxt ${HOME}/object_learn/train_data/output/
+  ```
